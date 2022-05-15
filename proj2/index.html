@@ -32,8 +32,7 @@
     <div>
         <h2 align="middle">Overview</h2>
         <p align="justify">
-          Give a high-level overview of what you have implemented in this assignment. Think about what you have built as a whole. Share your thoughts on what interesting things you have learned from completing this assignment.
-          <br><br>
+          
           This project looked into implementing the De Casteljau Algorithm to interact with Bezier Curves/Surfaces, and some basic triangle mesh editing operations to edge-flip, edge-split, and upsample meshes. The mesh editing algorithms were implemented using the half-edge data structures. From these algorithms, the upsampling method was implemented to smoothen the mesh structures, which could then be used for detailed phong shading.
           <br><br>
 
@@ -197,7 +196,7 @@
         <br>
         <div align="middle">
           <img src="img/edge_flip_diagram.png" align="middle" width="800px"/>
-          <figcaption align="middle"> Diagram from lecture showing the edge flip algorithm with element labels. </figcaption>
+          <figcaption align="middle"> Diagram from lecture 8 showing the edge flip algorithm with element labels. </figcaption>
         </div>
         <br>
         
@@ -229,7 +228,7 @@
         <br>
         <div align="middle">
           <img src="img/edge_split_diagram.png" align="middle" width="800px"/>
-          <figcaption align="middle"> Diagram from lecture showing the edge split algorithm with element labels. </figcaption>
+          <figcaption align="middle"> Diagram from lecture 8 showing the edge split algorithm with element labels. </figcaption>
         </div>
         <br>
         
@@ -263,79 +262,163 @@
                 </table>
               </div>
             
-
+              <br><br>
         <h3 align="middle">Part 6: Loop subdivision for mesh upsampling</h3>
 
+        <br>
+        <div align="middle">
+          <img src="img/loop_diagram.png" align="middle" width="800px"/>
+          <figcaption align="middle"> Diagram from lecture 8 showing the 4-1 loop subdivision process. </figcaption>
+        </div>
+        <br>
+
         <p align="justify">
-            Level sampling enables us to address the instance where a single pixel in the surface to be mapped corresponds to multiple pixels in the texture map (texels). As mentioned in lecture, this issue is especially prominent in minification i.e. when trying to map textures to walls and floors in the backgrounds of a scene. If these textures are of high resolution and have high frequency features or details, their mapping onto the background surfaces without level sampling can produce moire patterns, jaggies and other aliasing artifacts. This is since adjacent pixels will differ very significantly in the original texture, but due to their minification, the mapping algorithm will jump between these varying pixels leading to a non-uniform mapping of the surface. 
-            <br><br>
-            In our implementation of level sampling we used Mipmaps. Mipmaps essentially cache iteratively downsampled versions of the original texture at the cost of some memory. This method of implementing level-sampling by caching rather than computing on the spot significantly reduces the runtime for texture mapping. What’s more, as discussed in lecture 5, the additional cost of memory for Mipmaps is only ⅓ the memory used to store the original texture map, making the use of Mipmaps for level sampling more computationally sound given their significant improvement on rendering (see examples below).
-            <br><br>
-            The implementation of Mipmaps for texture mapping involves figuring out which Mipmap level to use when mapping the texture to a surface in screen space. This was done by taking the derivatives of the texel corresponding to the point sampled from the surface (d(x, y)/d(u, v)), and the texel corresponding to an adjacent point on the surface, and finding the magnitude of distance between these two derivative values after they are scaled by width and height of the texture map for dx and dy respectively. Taking the log of this magnitude value, the Mipmap level is then simply the output from the log, or the nearest integer value to the log output, depending on which level sampling method is used (Nearest or Bilinear respectively). If using the continuous log output (for Bilinear level sampling), the sampling method uses a weighted sum of the sample from each of the adjacent mipmap levels as described in lecture 5.
-            <br><br>
-            On a high level, the difference in derivative allows us to find out the degree of high-frequency details the texture has (how much change in values exists between adjacent texel values). As complexity of the texture increases, the level chosen from the Mipmap decreases in resolution (more downsampled) to avoid aliasing artifacts from minification of high-frequency features.
-            <br><br>
+          Loop subdivision enables the process of upsampling meshes to increase the surface smoothness of the object. As shown in the teapot mesh figures below, upsampling the teapot mesh significantly smoothens the surface of the teapot where the handle and the knob meet the pot and lid respectively. Upsampling to 256x produces a mesh that is smooth enough that even flat shading renders are approximately equal to the renders done with Phong shading on the original mesh (refer to the figure in Part 3) save for places with signficant shift in normal values (e.g. where the spout meets the main body, only the upsampling method improves the blending between the two components). However, this does come at a significant computation cost (1-5 fps vs 100+fps), indicating how significantly efficient the phong shading technique is in comparison to flat shading at upsampled mesh resolutions.
+        </p>
+
+
+        
+        <div align="middle">
+          <table style="width=100%">
+            <tr>
+              <td>
+                <img src="img/loop_teapot_1.png" align="middle" width="320px"/>
+                <!-- <figcaption align="middle"> Teapot Mesh original (without wire frame).</figcaption> -->
+              </td>
+              <td>
+                <img src="img/loop_teapot_64_phong_wire.png" align="middle" width="320px"/>
+                <!-- <figcaption align="middle">Teapot Mesh upsampled 256x.</figcaption> -->
+              </td>
+              <td>
+                <img src="img/loop_teapot_64_phong.png" align="middle" width="320px"/>
+                <!-- <figcaption align="middle">Teapot Mesh upsampled 256x (without wire frame).</figcaption> -->
+              </td>
+            </tr>
+            <br>
+            <tr>
+              <td>
+                <!-- <img src="img/loop_teapot_1.png" align="middle" width="320px"/> -->
+                <figcaption align="middle"> Teapot Mesh original (without wire frame).</figcaption>
+              </td>
+              <td>
+                <!-- <img src="img/loop_teapot_64_phong_wire.png" align="middle" width="320px"/> -->
+                <figcaption align="middle">Teapot Mesh upsampled 256x.</figcaption>
+              </td>
+              <td>
+                <!-- <img src="img/loop_teapot_64_phong.png" align="middle" width="320px"/> -->
+                <figcaption align="middle">Teapot Mesh upsampled 256x <br> (without wire frame).</figcaption>
+              </td>
+            </tr>
+            <br>
+          </table>
+        </div>
+
+        <br><br>
+        
+        <p align="justify">
+          Implementation of loop subdivision was done using the recommendations suggested in the project spec and in the comments of the skeleton code. First, we update the weights of all the vertices to be (1 - n * u) of the original weight or position. Where n is the degree of the vertex and u is either 3⁄8n if n > 3 or 3⁄16 if n = 3. Then we take the position values of adjacent vertices and multiplying them by u, and add it to the updated vertex position. Afterwards, we calculate edge position values, by finding the midpoint vertex position for the 4 vertices, v0, v1, v2, v3, corresponding to each edge, where v0, v1 are vertices on the edge, and v2, v3 are vertices on either side of the edge for the corresponding triangle. The weighted midpoint vertex used to assign edge position is calculated to be  3⁄8 (v0 + v1) + 1⁄8 (v2 + v3). Next, all the edges within the mesh are split using the function from task 5, ensuring to flag isNew = true for the created vertices and edges. And finally, to correct the triangulation of the mesh, we iterate through all the edges and flip any edge that connects an old vertex (isNew = true) with a new vertex (isNew = true), then copy the new vertex positions into final vertex positions, and ensure the isNew flag for all vertices is set to false to prepare for the next iteration (if needed).
+          <br><br>
+          Based on how the loop subdivision is implemented we can recognize that the algorithm essentially shifts vertices to maximize localized mesh uniformity. In this manner, sharp edges and other high frequency features that lead to a large variation in the normal value of adjacent vertices are minimized and smoothed over. Hence, sharp edges become more rounded, and this rounding or smoothing process drops off exponentially as the greatest changes to vertex positions for uniform mesh distribution occurs in the initial few upsampling iterations. This can be seen by the significant change in the shape of the cube between upsampling 1x and upsampling 4x in comparison to upsampling 64x and upsampling 256x.
+          <br><br>
+          In addition, loop subdivision can act symmetrically or asymmetrically on a mesh depending on its original topology. For the cube, we observe that the original mesh produces an asymmetric upsampling result since not every vertex has the same degree. Consequently, the upsampling process will reposition vertices asymmetrically, as these reposition values are based on the average of neighboring vertex positions, which depends on the degree of each vertex. In this manner, if we add an additional split to each face of the cube such that each vertex on the cube has a degree of 6, we notice that upsampling produces a symmetric result. The final upsampled mesh still has a cube-like shape but with rounded edges.    
+        </p>
+        <br>
+
+        <div align="center">
+          <table style="width=100%">
+            <tbody>
+              <tr>
+                <td>
+                  <img src="img/cube_a_1.png" width="325px" align="middle">
+                  <figcaption align="middle">Asymmetric cube: Upsampling 1x </figcaption>
+                </td>
+                <td>
+                  <img src="img/cube_s_1.png" width="325px" align="middle">
+                  <figcaption align="middle">Symmetric cube: Upsampling 1x </figcaption>
+                </td>
+              </tr>
+              <!-- <br> -->
+              <tr>
+                <td>
+                  <img src="img/cube_a_4.png" width="325px" align="middle">
+                  <figcaption align="middle">Asymmetric cube: Upsampling 4x</figcaption>
+                </td>
+                <td>
+                  <img src="img/cube_s_4.png" width="325px" align="middle">
+                  <figcaption align="middle">Symmetric cube: Upsampling 4x</figcaption>
+                </td>
+              </tr>
+              <!-- <br> -->
+              <tr>
+                <td>
+                  <img src="img/cube_a_16.png" width="325px" align="middle">
+                  <figcaption align="middle">Asymmetric cube: Upsampling 16x</figcaption>
+                </td>
+                <td>
+                  <img src="img/cube_s_16.png" width="325px" align="middle">
+                  <figcaption align="middle">Symmetric cube: Upsampling 16x</figcaption>
+                </td>
+              </tr>
+              <!-- <br> -->
+              <tr>  
+                <td>
+                  <img src="img/cube_a_64.png" width="325px" align="middle">
+                  <figcaption align="middle">Asymmetric cube: Upsampling 64x</figcaption>
+                </td>
+                <td>
+                  <img src="img/cube_s_64.png" width="325px" align="middle">
+                  <figcaption align="middle">Symmetric cube: Upsampling 64x</figcaption>
+                </td>
+              </tr>
+              <!-- <br> -->
+              <tr>  
+                <td>
+                  <img src="img/cube_a_256.png" width="325px" align="middle">
+                  <figcaption align="middle">Asymmetric cube: Upsampling 256x</figcaption>
+                </td>
+                <td>
+                  <img src="img/cube_s_256.png" width="325px" align="middle">
+                  <figcaption align="middle">Symmetric cube: Upsampling 256x</figcaption>
+                </td>
+              </tr>
+              <!-- <br> -->
+            </tbody></table>
+        </div>
+        
+          <br><br>
+
+          <p align="justify">
+            Finally, an interesting observation is that the central areas of the faces of the cube remain relatively flat when upsampling for the symmetric cube topology. If we extend this pattern, we find that pre-splitting edges on a surface with a given topology tends to make the topology more prominent in the upsampled results (i.e. that portion of the surface is not smoothed over as much as the rest of the mesh). As demonstrated in the figure below, the mesh of the face of the cube with extra splits remains much flatter and less smoothed over than the rest of the cube mesh. Hence, pre-splitting edges can increase the persistence of specific features in a mesh which at times can reduce the overall smoothing effect of upsampling.
+          </p>
+          <br><br>
+
+          <div align="middle">
+            <table style="width=100%">
+              <tr>
+                <td>
+                  <img src="img/cube_split_face.png" align="middle" width="400px"/>
+                  <!-- <figcaption align="middle"> Teapot Mesh original (without wire frame).</figcaption> -->
+                </td>
+                <td>
+                  <img src="img/cube_split_face_16.png" align="middle" width="400px"/>
+                  <!-- <figcaption align="middle">Teapot Mesh upsampled 256x.</figcaption> -->
+                </td>
+              </tr>
+              <!-- <br> -->
+              <tr>
+                <td>
+                  <!-- <img src="img/loop_teapot_1.png" align="middle" width="320px"/> -->
+                  <figcaption align="middle"> Cube mesh with added split edges on one face. <br> Upsampling 1x </figcaption>
+                </td>
+                <td>
+                  <!-- <img src="img/loop_teapot_64_phong_wire.png" align="middle" width="320px"/> -->
+                  <figcaption align="middle">Cube mesh with added split edges on one face. <br> Upsampling 16x </figcaption>
+                </td>
+              </tr>
+              <!-- <br> -->
+            </table>
+          </div>
             
-            </p>
-            
-            <div align="middle">
-              <table style="width=100%">
-                <tr>
-                  <td>
-                    <img src="images/Lzero_Pnear.png" align="middle" width="400px"/>
-                    <figcaption align="middle">L_ZERO, P_NEAREST. Image has most aliasing or is least smooth/blurry. </figcaption>
-                  </td>
-                  <td>
-                    <img src="images/Lzero_Plinear.png" align="middle" width="400px"/>
-                    <figcaption align="middle">L_ZERO, P_LINEAR.</figcaption>
-                  </td>
-                </tr>
-                <br>
-                <tr>
-                  <td>
-                    <img src="images/Lnear_Pnear.png" align="middle" width="400px"/>
-                    <figcaption align="middle">L_NEAREST, P_NEAREST.</figcaption>
-                  </td>
-                  <td>
-                    <img src="images/Lnear_Plinear.png" align="middle" width="400px"/>
-                    <figcaption align="middle">L_NEAREST, P_LINEAR.</figcaption>
-                  </td>
-                </tr>
-                <!-- <br>
-                <tr>
-                  <td>
-                    <img src="images/Llinear_Pnear.png" align="middle" width="400px"/>
-                    <figcaption align="middle">L_LINEAR, P_NEAREST.</figcaption>
-                  </td>
-                  <td>
-                    <img src="images/Llinear_Plinear.png" align="middle" width="400px"/>
-                    <figcaption align="middle">L_LINEAR, P_LINEAR. Image is smoothest (and blurriest).</figcaption>
-                  </td>
-                </tr> -->
-              </table>
-            </div>
-            <br><br>
-            <div align="middle">
-              <img src="images/Llinear_Plinear_v2.png" align="middle" width="800px"/>
-              <figcaption align="middle"> L_LINEAR, P_LINEAR. Trilinear sampling, <br> Image is the smoothest as shown in the gradient coloring of the roof. </figcaption>
-            </div>
-
-            <br><br>
-
-            <p align="justify">
-              When determining the tradeoffs between speed, memory usage, and antialiasing power between the three various techniques, it was found that fastest rendering with least memory usage occurred when using nearest sampling with zero level sampling. This makes sense as nearest sampling does not use interpolation, so the lack of additional steps makes sampling faster. Zero level sampling proceeds by using the original texture image for mapping, which avoids the additional steps involved with MipMaps. However, this resulted in the worst amount of aliasing artifacts in the image, with the least amount of anti-aliasing power.
-              <br><br>
-              Nearest level sampling tended to have runtime between zero level and bilinear level sampling, but memory usage similar to zero-level sampling, as it required the overhead for level sampling, but no additional memory usage beyond that like as needed with the weighted sum computation of bilinear level sampling. As a result, it also tended to have anti-aliasing power higher than zero-level sampling but lower than bilinear level sampling.
-              <br><br>
-              Bilinear level sampling has the slowest runtime with the most memory usage, as it both requires the overhead of level sampling, and the interpolation computation between levels which requires the caching and sampling of multiple levels during mapping. Nevertheless, it also has the greatest anti-aliasing power due to its ability to interpolate features on the texture map across resolutions when mapping to the surface.
-              <br><br>
-              Likewise, when combined with the various pixel sampling techniques, we find that bilinear pixel sampling tends to outperform nearest pixel sampling in terms of anti-aliasing power across the board, but at the cost of being consistently slower in speed. The combination that led to the greatest anti-aliasing power, at the cost of using the most memory and being the slowest, was bilinear pixel sampling with bilinear level sampling (AKA trilinear sampling), as it performed a weighted sum computation for both adjacent pixels and levels, for the highest resolution of interpolation.
-              
-              </p>
-
-              <p align="justify" style="font-style: italic; font-size: 14px;">
-                *An interesting error, or bug that was discovered was that when using trilinear sampling, if we increase the sampling rate, the surface turns black. However, if we revert the sampling rate and then increase it again, the surface properly maps the texture with the updated sampling rate as it should have in the first place. I was unable to determine the cause of this bug, but my hypothesis is that the issue relates to some issue in the rendering pipeline, or the way memory is managed that is causing the rasterizer to incorrectly map all the pixels on the surface to 0 (black). I say this because the issue is not encountered when increasing sampling rate for texture mapping when using nearest layer sampling with either bilinear or nearest pixel sampling, or any other combination, all of which uses less computation power and memory than trilinear sampling.
-                </p>
 
     </div></body>
 </html>
